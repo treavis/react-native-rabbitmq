@@ -18,4 +18,6 @@
     - (void) bind:(nonnull RMQExchange *)exchange routing_key:(NSString *)routing_key;
     - (void) unbind:(nonnull RMQExchange *)exchange routing_key:(NSString *)routing_key;
     - (void) delete;
+    - (void) ack:(nonnull NSNumber *)deliveryTag;
+    - (void) nack:(nonnull NSNumber *)deliveryTag;
 @end

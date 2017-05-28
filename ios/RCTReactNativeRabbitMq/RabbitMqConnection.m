@@ -46,7 +46,7 @@ RCT_EXPORT_METHOD(connect)
 
     } else {
         NSString *uri = [NSString stringWithFormat:@"amqp://%@:%@@%@:%@/%@", self.config[@"username"], self.config[@"password"], self.config[@"host"], self.config[@"port"], self.config[@"virtualhost"]];        
-    
+        NSLog(@"URI %@",uri);
         //self.connection = [[RMQConnection alloc] initWithUri:uri verifyPeer:true delegate:delegate];
         self.connection = [[RMQConnection alloc] initWithUri:uri 
                                               channelMax:@65535 
@@ -216,7 +216,15 @@ RCT_EXPORT_METHOD(deleteExchange:(NSString *)exchange_name)
     }
 }
 
+CT_EXPORT_METHOD(ack:(nonnull NSNumber *)deliveryTag) 
+{
+    [self.channel ack:deliveryTag];
+}
 
+RCT_EXPORT_METHOD(nack:(nonnull NSNumber *)deliveryTag) 
+{
+    [self.channel nack:deliveryTag];
+}
 
 -(id) findQueue:(NSString *)name {
     id queue_id = nil;
