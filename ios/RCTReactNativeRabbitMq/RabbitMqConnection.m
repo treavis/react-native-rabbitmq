@@ -30,9 +30,20 @@ RCT_EXPORT_METHOD(connect)
 
     RabbitMqDelegateLogger *delegate = [[RabbitMqDelegateLogger alloc] initWithBridge:self.bridge];
 
-    if(self.config[@"port"] == 5671) {
+    NSInteger port = self.config[@"port"];
+    NSLog(@"Config port [%@]",port);
+    if(port <= 5671) {
         NSString *uri = [NSString stringWithFormat:@"amqps://%@:%@@%@:%@/%@", self.config[@"username"], self.config[@"password"], self.config[@"host"], self.config[@"port"], self.config[@"virtualhost"]];
-        self.connection = [[RMQConnection alloc] initWithUri:uri delegate:delegate];
+        NSLog(@"URI SSL %@",uri);
+        //self.connection = [[RMQConnection alloc] initWithUri:uri delegate:delegate];
+        self.connection = [[RMQConnection alloc] initWithUri:uri 
+                                              channelMax:@65535 
+                                                frameMax:@(RMQFrameMax) 
+                                               heartbeat:@10
+                                             syncTimeout:@10 
+                                                delegate:delegate
+                                           delegateQueue:dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0)];
+
     } else {
         NSString *uri = [NSString stringWithFormat:@"amqp://%@:%@@%@:%@/%@", self.config[@"username"], self.config[@"password"], self.config[@"host"], self.config[@"port"], self.config[@"virtualhost"]];        
     
