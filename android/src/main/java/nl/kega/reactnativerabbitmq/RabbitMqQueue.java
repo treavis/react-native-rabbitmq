@@ -21,6 +21,7 @@ public class RabbitMqQueue {
     public String routing_key;
     public Boolean passive;
     public Boolean exclusive;
+    public Boolean subscribe;
     public Boolean durable;
     public Boolean autodelete;
     public ReadableMap consumer_arguments;
@@ -36,6 +37,7 @@ public class RabbitMqQueue {
         this.channel = channel;
 
         this.name = queue_condig.getString("name");
+        this.subscribe = (queue_condig.hasKey("subscribe") ? queue_condig.getBoolean("subscribe") : false);
         this.exclusive = (queue_condig.hasKey("exclusive") ? queue_condig.getBoolean("exclusive") : false);
         this.durable = (queue_condig.hasKey("durable") ? queue_condig.getBoolean("durable") : true);
         this.autodelete = (queue_condig.hasKey("autoDelete") ? queue_condig.getBoolean("autoDelete") : false);
@@ -50,8 +52,9 @@ public class RabbitMqQueue {
             Map<String, Object> consumer_args = toHashMap(this.consumer_arguments);
 
             this.channel.queueDeclare(this.name, this.durable, this.exclusive, this.autodelete, args);
-            this.channel.basicConsume(this.name, false, consumer_args, consumer);
-
+            if (this.subscribe) {
+                this.channel.basicConsume(this.name, false, consumer_args, consumer);
+            }
         } catch (Exception e){
             Log.e("RabbitMqQueue", "Queue error " + e);
             e.printStackTrace();

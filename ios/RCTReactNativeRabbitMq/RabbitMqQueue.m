@@ -60,16 +60,18 @@ RCT_EXPORT_MODULE();
 
         RMQTable *arguments = [[RMQTable alloc] init:tmp_arguments];
 
-        [self.queue subscribe:consumer_options
+        if ([config objectForKey:@"subscribe"] != nil && [[config objectForKey:@"subscribe"] boolValue]){
+
+            [self.queue subscribe:consumer_options
                     arguments:arguments
                     handler:^(RMQMessage * _Nonnull message) {
 
-            NSString *body = [[NSString alloc] initWithData:message.body encoding:NSUTF8StringEncoding];
+                NSString *body = [[NSString alloc] initWithData:message.body encoding:NSUTF8StringEncoding];
 
-            [self.channel ack:message.deliveryTag];
+                [self.channel ack:message.deliveryTag];
 
-            [self.bridge.eventDispatcher sendAppEventWithName:@"RabbitMqQueueEvent" 
-                body:@{
+                [self.bridge.eventDispatcher sendAppEventWithName:@"RabbitMqQueueEvent" 
+                    body:@{
                     @"name": @"message", 
                     @"queue_name": self.name, 
                     @"message": body, 
@@ -77,9 +79,11 @@ RCT_EXPORT_MODULE();
                     @"exchange": message.exchangeName,
                     @"consumer_tag": message.consumerTag, 
                     @"delivery_tag": message.deliveryTag
-                }
-            ];
-        }];
+                    }
+                ];
+            }];
+
+        }
 
     }
     return self;

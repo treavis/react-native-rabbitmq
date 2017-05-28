@@ -66,7 +66,22 @@ class RabbitMqConnection extends ReactContextBaseJavaModule  {
         this.factory.setPort(this.config.getInt("port"));
         this.factory.setAutomaticRecoveryEnabled(true);
         this.factory.setRequestedHeartbeat(60);
+        try {
+            if (this.config.getInt("port")==5671) {
+                Log.d("RabbitMqConnection","initialize SSL");
+                this.factory.useSslProtocol();
+            }
+        } catch(Exception e) {
+            WritableMap event = Arguments.createMap();
+                event.putString("name", "error");
+                event.putString("type", "failedssl");
+                event.putString("code", "");
+                event.putString("description", e.getMessage());
 
+                this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("RabbitMqConnectionEvent", event);
+
+                this.connection = null; 
+        }
     }
 
     @ReactMethod
