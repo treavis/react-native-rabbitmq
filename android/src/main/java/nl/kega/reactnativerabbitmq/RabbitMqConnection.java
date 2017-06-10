@@ -154,7 +154,7 @@ class RabbitMqConnection extends ReactContextBaseJavaModule  {
 
                 } catch (Exception e){
 
-                    Log.e("RabbitMqConnectionChannel", "Create channel error " + e);
+                    Log.e("RabbitMqConnection", "Create channel error " + e);
                     e.printStackTrace();
 
                 } 
@@ -163,10 +163,42 @@ class RabbitMqConnection extends ReactContextBaseJavaModule  {
     }
 
     @ReactMethod
-    public void addQueue(ReadableMap queue_condig, ReadableMap arguments) {
-        RabbitMqQueue queue = new RabbitMqQueue(this.context, this.channel, queue_condig, arguments);
-        this.queues.add(queue);
+    public void addQueue(ReadableMap queue_config, ReadableMap arguments) {
+        try {
+            RabbitMqQueue queue = new RabbitMqQueue(this.context, this.channel, queue_config, arguments);
+            this.queues.add(queue);
+            //successCallback.invoke(queue.name);
+            
+            //NSString *name = [queue getname];
+            //NSString *qname = [queue getqueuename];
+            //[self.bridge.eventDispatcher sendAppEventWithName:@"RabbitMqConnectionEvent" body:@{@"name": @"addQueue",@"input_queue_name":name,@"output_queue_name":qname}];
+            Log.i("RabbitMqConnection","queue added, callback "+queue.name);
+            WritableMap event = Arguments.createMap();
+                event.putString("name", "addQueue");
+                event.putString("input_queue_name", queue_config.getString("name"));
+                event.putString("output_queue_name", queue.name);
+
+            this.context.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).emit("RabbitMqConnectionEvent", event);
+        } catch(Exception e) {
+            Log.d("RabbitMqConnection","addQueue " + e.getMessage());
+            //errorCallback.invoke(e.getMessage());
+        }
     }
+
+    /*
+    @ReactMethod
+    public void addQueue(ReadableMap queue_condig, ReadableMap arguments,
+      Callback errorCallback,
+      Callback successCallback) {
+        try {
+            RabbitMqQueue queue = new RabbitMqQueue(this.context, this.channel, queue_condig, arguments);
+            this.queues.add(queue);
+            successCallback.invoke(queue.name);
+        } catch(Exception e) {
+            errorCallback.invoke(e.getMessage());
+        }
+    }
+    */
 
     @ReactMethod
     public void bindQueue(String exchange_name, String queue_name, String routing_key) {
@@ -216,25 +248,43 @@ class RabbitMqConnection extends ReactContextBaseJavaModule  {
     public void removeQueue() {
       
     }
+    
     /*
     @ReactMethod
     public void publishToQueue(String message, String exchange_name, String routing_key) {
 
         for (RabbitMqQueue queue : queues) {
-		    if (Objects.equals(exchange_name, queue.exchange_name)){
-                Log.e("RabbitMqConnection", "publish " + message);
-                queue.publish(message, exchange_name);
+            if (queue.exchange != null) {
+            if (Objects.equals(exchange_name, queue.exchange.name)){
+                Log.e("RabbitMqConnection", "Queue publish1 " + message);
+                queue.publish(message, routing_key, null);
                 return;
             }
-		}
+            }
+        }
 
     }
     */
 
     @ReactMethod
-    public void addExchange(ReadableMap exchange_condig) {
+    public void publishToQueue(String message, String routing_key, ReadableMap message_properties) {
 
-        RabbitMqExchange exchange = new RabbitMqExchange(this.context, this.channel, exchange_condig);
+        for (RabbitMqQueue queue : queues) {
+            Log.i("RabbitMqConnection","queue:"+queue.name);
+            Log.i("RabbitMqConnection","queue:test name");
+		    if (Objects.equals(routing_key, queue.name)){
+                Log.i("RabbitMqConnection", "Queue publish2 " + message);
+                queue.publish(message, routing_key, message_properties);
+                return;
+            }
+		}
+
+    }
+
+    @ReactMethod
+    public void addExchange(ReadableMap exchange_config) {
+
+        RabbitMqExchange exchange = new RabbitMqExchange(this.context, this.channel, exchange_config);
 
         this.exchanges.add(exchange);
     }
@@ -282,6 +332,28 @@ class RabbitMqConnection extends ReactContextBaseJavaModule  {
             this.factory = null;
             this.channel = null;
         } 
+    }
+
+    @ReactMethod
+    public void ack(int delivery_tag) {
+        try {
+            Log.d("RabbitMqConnection", "Channel ack " + delivery_tag);
+            this.channel.basicAck(delivery_tag, false);
+        } catch (Exception e){
+            Log.e("RabbitMqConnection", "Channel ack error " + e);
+            e.printStackTrace();
+        }
+    }
+
+    @ReactMethod
+    public void nack(int delivery_tag) {
+        try {
+            Log.d("RabbitMqConnection", "Channel basicNack " + delivery_tag);
+            this.channel.basicNack(delivery_tag, false, false);
+        } catch (Exception e){
+            Log.e("RabbitMqConnection", "Channel nack error " + e);
+            e.printStackTrace();
+        }
     }
 
     private void onClose(ShutdownSignalException cause) { 

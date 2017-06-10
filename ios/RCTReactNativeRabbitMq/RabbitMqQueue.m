@@ -45,7 +45,7 @@ RCT_EXPORT_MODULE();
         }
 
         self.queue = [self.channel queue:self.name options:self.options];
-        
+        NSLog(@"RabbitMqQueue:name: %@",self.queue.name);
 
         NSDictionary *tmp_arguments = @{};
         if ([config objectForKey:@"consumer_arguments"] != nil){
@@ -62,10 +62,12 @@ RCT_EXPORT_MODULE();
 
         if ([config objectForKey:@"subscribe"] != nil && [[config objectForKey:@"subscribe"] boolValue]){
 
+            NSLog(@"Setup consuming messages on queue %@",self.queue.name);
             [self.queue subscribe:consumer_options
                     arguments:arguments
                     handler:^(RMQMessage * _Nonnull message) {
 
+                NSLog(@"Consuming Message on queue %@",self.queue.name);
                 NSString *body = [[NSString alloc] initWithData:message.body encoding:NSUTF8StringEncoding];
 
                 //[self.channel ack:message.deliveryTag];
@@ -73,7 +75,7 @@ RCT_EXPORT_MODULE();
                 [self.bridge.eventDispatcher sendAppEventWithName:@"RabbitMqQueueEvent" 
                     body:@{
                     @"name": @"message", 
-                    @"queue_name": self.name, 
+                    @"queue_name": self.queue.name, 
                     @"message": body, 
                     @"routingKey": message.routingKey, 
                     @"exchange": message.exchangeName,
@@ -91,7 +93,7 @@ RCT_EXPORT_MODULE();
 
 -(void) bind:(RMQExchange *)exchange routing_key:(NSString *)routing_key {
 
-  
+    NSLog(@"Queue.bind");
     if ([routing_key length] == 0){
         [self.queue bind:exchange];
     }else{
@@ -120,6 +122,14 @@ RCT_EXPORT_MODULE();
 -(void) nack:(nonnull NSNumber *)deliveryTag {
     NSLog(@"Queue.nack");
     [self.channel nack:deliveryTag];
+}
+
+-(NSString *) getname {
+    return self.name;
+}
+
+-(NSString *) getqueuename {
+    return self.queue.name;
 }
 
 @end

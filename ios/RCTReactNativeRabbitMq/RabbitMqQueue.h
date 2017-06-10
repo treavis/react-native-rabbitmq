@@ -20,4 +20,6 @@
     - (void) delete;
     - (void) ack:(nonnull NSNumber *)deliveryTag;
     - (void) nack:(nonnull NSNumber *)deliveryTag;
+- (NSString*) getname;
+- (NSString*) getqueuename;
 @end

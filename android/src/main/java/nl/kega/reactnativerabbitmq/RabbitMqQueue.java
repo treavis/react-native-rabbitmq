@@ -29,20 +29,20 @@ public class RabbitMqQueue {
     private ReactApplicationContext context;
 
     private Channel channel;
-    private RabbitMqExchange exchange;
+    public RabbitMqExchange exchange;
 
-    public RabbitMqQueue (ReactApplicationContext context, Channel channel, ReadableMap queue_condig, ReadableMap arguments){
+    public RabbitMqQueue (ReactApplicationContext context, Channel channel, ReadableMap queue_config, ReadableMap arguments){
        
         this.context = context;
         this.channel = channel;
 
-        this.name = queue_condig.getString("name");
-        this.subscribe = (queue_condig.hasKey("subscribe") ? queue_condig.getBoolean("subscribe") : false);
-        this.exclusive = (queue_condig.hasKey("exclusive") ? queue_condig.getBoolean("exclusive") : false);
-        this.durable = (queue_condig.hasKey("durable") ? queue_condig.getBoolean("durable") : true);
-        this.autodelete = (queue_condig.hasKey("autoDelete") ? queue_condig.getBoolean("autoDelete") : false);
+        this.name = queue_config.getString("name");
+        this.subscribe = (queue_config.hasKey("subscribe") ? queue_config.getBoolean("subscribe") : false);
+        this.exclusive = (queue_config.hasKey("exclusive") ? queue_config.getBoolean("exclusive") : false);
+        this.durable = (queue_config.hasKey("durable") ? queue_config.getBoolean("durable") : true);
+        this.autodelete = (queue_config.hasKey("autoDelete") ? queue_config.getBoolean("autoDelete") : false);
         
-        this.consumer_arguments = (queue_condig.hasKey("consumer_arguments") ? queue_condig.getMap("consumer_arguments") : null);
+        this.consumer_arguments = (queue_config.hasKey("consumer_arguments") ? queue_config.getMap("consumer_arguments") : null);
      
         Map<String, Object> args = toHashMap(arguments);
 
@@ -51,7 +51,15 @@ public class RabbitMqQueue {
 
             Map<String, Object> consumer_args = toHashMap(this.consumer_arguments);
 
-            this.channel.queueDeclare(this.name, this.durable, this.exclusive, this.autodelete, args);
+            if (this.name.equals("")) {
+                Log.d("RabbitMqQueue", "build tmp queue");
+                this.name = this.channel.queueDeclare().getQueue();
+                Log.d("RabbitMqQueue", "tmp queue=" + this.name);
+            } else {
+                Log.d("RabbitMqQueue", "build queue");
+                this.channel.queueDeclare(this.name, this.durable, this.exclusive, this.autodelete, args);
+                Log.d("RabbitMqQueue", "queue=" + this.name);
+            }
             if (this.subscribe) {
                 this.channel.basicConsume(this.name, false, consumer_args, consumer);
             }
@@ -94,21 +102,53 @@ public class RabbitMqQueue {
             e.printStackTrace();
         }
     }
+    
     /*
     public void publish(String message, String routing_key){ 
         try {
             byte[] message_body_bytes = message.getBytes();
 
             AMQP.BasicProperties properties = new AMQP.BasicProperties();
-            //properties.setExpiration("60000");
-       
-            this.channel.basicPublish(this.exchange_name, routing_key, properties, message_body_bytes);
+            //properties.setExpiration("60000");       
+            String exchange_name = "";
+            if(this.exchange != null) {
+                exchange_name = this.exchange.name;
+            }
+            this.channel.basicPublish(exchange_name, routing_key, properties, message_body_bytes);
         } catch (Exception e){
-            Log.e("RabbitMqQueue", "Queue publish error " + e);
+            Log.e("RabbitMqQueue", "Queue publish error1 " + e);
             e.printStackTrace();
         }
     }
     */
+    public void publish(String message, String routing_key, ReadableMap message_properties){ 
+        try {
+            byte[] message_body_bytes = message.getBytes();
+
+            AMQP.BasicProperties.Builder properties = new AMQP.BasicProperties.Builder();
+
+            //properties.setExpiration("60000");
+            if (message_properties != null) {
+                if (message_properties.hasKey("correlation_id")) {
+                    properties.correlationId(message_properties.getString("correlation_id"));
+                }
+                if (message_properties.hasKey("reply_to")) {
+                    properties.replyTo(message_properties.getString("reply_to"));
+                }
+            }
+
+            String exchange_name = "";
+            if(this.exchange != null) {
+                exchange_name = this.exchange.name;
+            }
+            Log.i("RabbitMqQueue","basicPublish:"+exchange_name+"/"+routing_key);
+            this.channel.basicPublish(exchange_name, routing_key, properties.build(), message_body_bytes);
+        } catch (Exception e){
+            Log.e("RabbitMqQueue", "Queue publish error2 " + e);
+            e.printStackTrace();
+        }
+    }
+    
     public void purge(){ 
         try {
             //this.channel.queuePurge(this.name, true); 

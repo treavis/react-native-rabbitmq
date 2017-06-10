@@ -32,6 +32,7 @@ public class RabbitMqConsumer extends DefaultConsumer {
         String routing_key = envelope.getRoutingKey();
         String exchange = envelope.getExchange();
         String content_type = properties.getContentType();
+        String delivery_tag = Long.toString(envelope.getDeliveryTag());
 
         Boolean is_redeliver = envelope.isRedeliver();
 
@@ -41,12 +42,13 @@ public class RabbitMqConsumer extends DefaultConsumer {
         message_params.putString("name", "message");
         message_params.putString("message", message);
         message_params.putString("routing_key", routing_key);
+        message_params.putString("delivery_tag", delivery_tag);
         message_params.putString("exchange", exchange);
         message_params.putString("content_type", content_type);
 
         this.connection.onMessage(message_params);
 
-        this.channel.basicAck(envelope.getDeliveryTag(), false);
+        //this.channel.basicAck(envelope.getDeliveryTag(), false);
     }
 
 
