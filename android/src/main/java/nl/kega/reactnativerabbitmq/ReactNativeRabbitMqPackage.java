@@ -30,7 +30,11 @@ public class ReactNativeRabbitMqPackage implements ReactPackage {
      * listed here. Also listing a native module here doesn't imply that the JS implementation of it
      * will be automatically included in the JS bundle.
      */
+    /*
+    Fix for RN >= 0.47
+    See issue https://github.com/facebook/react-native/issues/15232
     @Override
+    */
     public List<Class<? extends JavaScriptModule>> createJSModules() {
         return Collections.emptyList();
     }
